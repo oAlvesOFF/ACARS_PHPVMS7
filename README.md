@@ -29,6 +29,7 @@ _Connect any Virtual Airline · Track live flights · File PIREPs automatically_
 ---
 
 ## ✦ Overview
+<img width="1920" height="1038" alt="image" src="https://github.com/user-attachments/assets/426dbc9d-fd79-4c90-aef0-5aa622da92dd" />
 
 **ASA-ACARS** is a next-generation ACARS desktop client built from the ground up in **Rust + Tauri 2**, designed specifically for **phpVMS 7** virtual airlines. It bridges your flight simulator (MSFS 2020/2024 or X-Plane 11/12) with any phpVMS 7 backend — recording your full flight, streaming your live position, analyzing your landing, and submitting a complete PIREP automatically.
 
