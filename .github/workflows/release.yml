@@ -1,0 +1,173 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to release (e.g. v0.11.3)"
+        required: true
+
+# Only one release run at a time — avoids two simultaneous drafts
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  # ─────────────────────────────────────────────
+  # 1. Windows build → NSIS installer + updater
+  # ─────────────────────────────────────────────
+  build-windows:
+    name: Build · Windows (x64)
+    runs-on: windows-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Setup Rust (stable)
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Build + Bundle (Tauri)
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Updater signing — set these in repo Settings → Secrets
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          # Optional: Sentry DSN baked at build time
+          AEROACARS_SENTRY_DSN: ${{ secrets.AEROACARS_SENTRY_DSN }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: "ASA-ACARS ${{ github.ref_name }}"
+          releaseBody: |
+            ## 🚀 ASA-ACARS ${{ github.ref_name }}
+
+            See [CHANGELOG](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for full release notes.
+
+            ### Installation
+            - **Windows:** Download the `.exe` installer (NSIS) below.
+            - **macOS (Apple Silicon):** Download the `.dmg` below.
+
+            > **phpVMS 7 required.** Enter your VA URL and API Key at first launch.
+          releaseDraft: true
+          prerelease: ${{ contains(github.ref_name, 'beta') || contains(github.ref_name, 'alpha') || contains(github.ref_name, 'rc') }}
+          args: --target x86_64-pc-windows-msvc --bundles nsis
+
+  # ──────────────────────────────────────────────────────────
+  # 2. macOS build → .dmg + .app.tar.gz (Apple Silicon arm64)
+  # ──────────────────────────────────────────────────────────
+  build-macos:
+    name: Build · macOS (Apple Silicon)
+    runs-on: macos-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Setup Rust (stable) + aarch64 target
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Build + Bundle (Tauri)
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          AEROACARS_SENTRY_DSN: ${{ secrets.AEROACARS_SENTRY_DSN }}
+          # macOS code-signing (optional — remove if not signing)
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: "ASA-ACARS ${{ github.ref_name }}"
+          releaseDraft: true
+          prerelease: ${{ contains(github.ref_name, 'beta') || contains(github.ref_name, 'alpha') || contains(github.ref_name, 'rc') }}
+          args: --target aarch64-apple-darwin --bundles dmg,app
+
+  # ─────────────────────────────────────────────────────
+  # 3. Publish — promotes the draft release to public
+  #    Runs only after BOTH platform builds succeed
+  # ─────────────────────────────────────────────────────
+  publish:
+    name: Publish Release
+    needs: [build-windows, build-macos]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Promote draft → published
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const tag = context.ref.startsWith('refs/tags/')
+              ? context.ref.replace('refs/tags/', '')
+              : '${{ github.event.inputs.tag }}';
+
+            // Find the draft release that tauri-action created
+            const { data: releases } = await github.rest.repos.listReleases({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+            });
+
+            const draft = releases.find(
+              (r) => r.draft && r.tag_name === tag
+            );
+
+            if (!draft) {
+              core.setFailed(`No draft release found for tag ${tag}`);
+              return;
+            }
+
+            await github.rest.repos.updateRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              release_id: draft.id,
+              draft: false,
+            });
+
+            core.info(`✅ Release ${tag} published successfully (id: ${draft.id})`);
