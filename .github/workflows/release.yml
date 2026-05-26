@@ -113,9 +113,6 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
           AEROACARS_SENTRY_DSN: ${{ secrets.AEROACARS_SENTRY_DSN }}
-          # Ad-hoc signing ("-") — no Apple Developer account needed.
-          # Replace with real APPLE_* secrets when you have a paid account.
-          APPLE_SIGNING_IDENTITY: "-"
         with:
           tagName: ${{ github.ref_name }}
           releaseName: "ASA-ACARS ${{ github.ref_name }}"
