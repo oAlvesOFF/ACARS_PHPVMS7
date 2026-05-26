@@ -1,0 +1,16 @@
+{
+    "name": "flyazores/cloudeacars-module",
+    "description": "CloudeAcars module for phpVMS 7",
+    "type": "phpvms-module",
+    "autoload": {
+        "psr-4": {
+            "Modules\\CloudeAcars\\": "/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [],
+            "aliases": {}
+        }
+    }
+}

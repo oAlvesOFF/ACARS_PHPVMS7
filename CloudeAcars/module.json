@@ -1,0 +1,20 @@
+{
+    "name": "CloudeAcars",
+    "alias": "cloudeacars",
+    "description": "API Backend and Configuration for the FlyAzores ACARS client.",
+    "version": "1.0.0",
+    "keywords": [
+        "phpvms",
+        "acars",
+        "flyazores"
+    ],
+    "active": 1,
+    "order": 0,
+    "providers": [
+        "Modules\\CloudeAcars\\Providers\\CloudeAcarsServiceProvider",
+        "Modules\\CloudeAcars\\Providers\\EventServiceProvider"
+    ],
+    "aliases": {},
+    "files": [],
+    "requires": []
+}

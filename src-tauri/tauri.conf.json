@@ -1,0 +1,55 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "ASA-ACARS",
+  "version": "0.11.3",
+  "identifier": "com.asa-acars.app",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "ASA-ACARS",
+        "width": 1200,
+        "height": 800,
+        "minWidth": 900,
+        "minHeight": 600,
+        "resizable": true,
+        "center": true
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self' ipc: http://ipc.localhost; connect-src 'self' ipc: http://ipc.localhost https: wss://live.kant.ovh https://www.simbrief.com https://*.simbrief.com; img-src 'self' data: blob: https:; style-src 'self' 'unsafe-inline'; script-src 'self'; font-src 'self' data:"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "resources": {
+      "crates/sim-msfs/ffi/lib/SimConnect.dll": "SimConnect.dll"
+    },
+    "createUpdaterArtifacts": true,
+    "publisher": "ASA-ACARS Project",
+    "shortDescription": "Cross-platform ACARS client for phpVMS 7",
+    "longDescription": "ASA-ACARS connects phpVMS 7 with MSFS 2020/2024 and X-Plane 11/12, recording flights, streaming live position data, and submitting full PIREPs with detailed runway and landing analysis."
+  },
+  "plugins": {
+    "updater": {
+      "endpoints": [
+        "https://github.com/oAlvesOFF/ASA-Acars/releases/latest/download/latest.json"
+      ],
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEZCOEQ3OUQzMUI3MjFGNDMKUldSREgzSWIwM21OKzhPQTNtbmFXRVRrbW9OOHVKUGNuT2lJcTJqdVBjNmRFWjA4VXd4MURpaksK"
+    }
+  }
+}
