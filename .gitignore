@@ -25,3 +25,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+bundle.zip
+
+# Tauri updater signing keys — NEVER commit these
+tauri-update-key.key
+tauri-update-key.key.pub
